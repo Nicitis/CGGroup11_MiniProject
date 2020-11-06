@@ -315,7 +315,7 @@ void font_menu(int id)
     // Erase previous writting texts
     if (draw_mode == DRAW_TEXT && key_count > 0)
     {
-        glColor3f(r, g, b);
+        glColor3f(1.0f - r, 1.0f - g, 1.0f - b);
         glRasterPos2i(rx, ry);
         glEnable(GL_COLOR_LOGIC_OP);
         glLogicOp(GL_XOR);
@@ -325,13 +325,16 @@ void font_menu(int id)
     BuildFontWithEnum(font, font_size);
 
     // re-draw texts
-    glColor3f(r, g, b);
-    glRasterPos2i(rx, ry);
-    glPrint(key_buffer);
-    glFlush();
-    glDisable(GL_COLOR_LOGIC_OP);
+    if (draw_mode == DRAW_TEXT && key_count > 0)
+    {
+        glColor3f(1.0f - r, 1.0f - g, 1.0f - b);
+        glRasterPos2i(rx, ry);
+        glPrint(key_buffer);
+        glFlush();
+        glDisable(GL_COLOR_LOGIC_OP);
 
-    glFlush();
+        glFlush();
+    }
 }
 
 /* Adjust font size */
@@ -340,7 +343,7 @@ void font_size_menu(int id)
     // Erase previous writting text
     if (draw_mode == DRAW_TEXT && key_count > 0)
     {
-        glColor3f(r, g, b);
+        glColor3f(1.0f - r, 1.0f - g, 1.0f - b);
         glRasterPos2i(rx, ry);
         glEnable(GL_COLOR_LOGIC_OP);
         glLogicOp(GL_XOR);
@@ -372,11 +375,14 @@ void font_size_menu(int id)
     BuildFontWithEnum(font, font_size);
 
     // re-draw text
-    glColor3f(r, g, b);
-    glRasterPos2i(rx, ry);
-    glPrint(key_buffer);
-    glFlush();
-    glDisable(GL_COLOR_LOGIC_OP);
+    if (draw_mode == DRAW_TEXT && key_count > 0)
+    {
+        glColor3f(1.0f - r, 1.0f - g, 1.0f - b);
+        glRasterPos2i(rx, ry);
+        glPrint(key_buffer);
+        glFlush();
+        glDisable(GL_COLOR_LOGIC_OP);
+    }
 }
 
 // key callback function for entering text.
@@ -533,7 +539,7 @@ void motionFunc(int x, int y)
 	}
 
 	}
-    glFlush();
+    // glFlush();
 	pick(x, y);
 }
 

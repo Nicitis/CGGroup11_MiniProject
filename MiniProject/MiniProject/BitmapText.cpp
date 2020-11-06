@@ -111,14 +111,3 @@ int InitFont(GLvoid)                      // All Setup For OpenGL Goes Here
 
     return TRUE;                        // Initialization Went OK
 }
-
-/*
-GLvoid KillGLWindow(GLvoid)                         // Properly Kill The Window
-{
-    if (fullscreen)
-    {
-        ChangeDisplaySetting(NULL, 0);
-
-    }
-}
-*/
