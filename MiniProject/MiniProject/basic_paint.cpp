@@ -305,7 +305,7 @@ void fill_menu(int id)
     else fill = 0;
 }
 
-/* 폰트 종류 변경 기능 */
+/* change the font */
 void font_menu(int id)
 {
     // id: 1 ~ 6
@@ -330,12 +330,14 @@ void font_menu(int id)
     glPrint(key_buffer);
     glFlush();
     glDisable(GL_COLOR_LOGIC_OP);
+
+    glFlush();
 }
 
-/* 폰트 크기 조절 기능 */
+/* Adjust font size */
 void font_size_menu(int id)
 {
-    // Erase previous writting texts
+    // Erase previous writting text
     if (draw_mode == DRAW_TEXT && key_count > 0)
     {
         glColor3f(r, g, b);
@@ -369,7 +371,7 @@ void font_size_menu(int id)
 
     BuildFontWithEnum(font, font_size);
 
-    // re-draw texts
+    // re-draw text
     glColor3f(r, g, b);
     glRasterPos2i(rx, ry);
     glPrint(key_buffer);
@@ -377,6 +379,7 @@ void font_size_menu(int id)
     glDisable(GL_COLOR_LOGIC_OP);
 }
 
+// key callback function for entering text.
 void key(unsigned char k, int xx, int yy)
 {
     if (draw_mode != DRAW_TEXT) return;
@@ -385,7 +388,7 @@ void key(unsigned char k, int xx, int yy)
     // Erase the text.
     glEnable(GL_COLOR_LOGIC_OP);
     glLogicOp(GL_XOR);
-    glColor3f(r, g, b);
+    glColor3f(1.0f - r, 1.0f - g, 1.0f - b);
     glRasterPos2i(rx, ry);
     glPrint(key_buffer);
 
@@ -402,10 +405,11 @@ void key(unsigned char k, int xx, int yy)
         key_count++;
     }
 
-    // Redraw the text.
-    glColor3f(r, g, b);
+    // Redraw the text
+    glColor3f(1.0f - r, 1.0f - g, 1.0f - b);
     glRasterPos2i(rx, ry);
     glPrint(key_buffer);
+    
     glFlush();
     glDisable(GL_COLOR_LOGIC_OP);
 }
@@ -562,12 +566,15 @@ int main(int argc, char** argv)
     glutAddMenuEntry("Yellow", 6);
     glutAddMenuEntry("White", 7);
     glutAddMenuEntry("Black", 8);
+
     p_menu = glutCreateMenu(pixel_menu);
     glutAddMenuEntry("increase pixel size", 1);
     glutAddMenuEntry("decrease pixel size", 2);
+
     f_menu = glutCreateMenu(fill_menu);
     glutAddMenuEntry("fill on", 1);
     glutAddMenuEntry("fill off", 2);
+
     ft_menu = glutCreateMenu(font_menu); // Font Menu
     glutAddMenuEntry("Arial", 1);
     glutAddMenuEntry("Courier New", 2);
@@ -575,15 +582,18 @@ int main(int argc, char** argv)
     glutAddMenuEntry("Times New Roman", 4);
     glutAddMenuEntry("Book Antiqua", 5);
     glutAddMenuEntry("Trebuchet MS", 6);
+
     ft_size_menu = glutCreateMenu(font_size_menu); // Font Size Menu
     glutAddMenuEntry("Font Size Up (+10)", 1);
     glutAddMenuEntry("Font Size Up (+5)", 2);
     glutAddMenuEntry("Font Size Down (-5)", 3);
     glutAddMenuEntry("Font Size Down (-10)", 4);
+
     glutCreateMenu(right_menu);
     glutAddMenuEntry("quit", 1);
     glutAddMenuEntry("clear", 2);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
+
     glutCreateMenu(middle_menu);
     glutAddSubMenu("Colors", c_menu);
     glutAddSubMenu("Pixel Size", p_menu);
