@@ -1,8 +1,8 @@
 #include "BitmapText.h"
 
 // #include <windows.h>                      // Header File For Windows
-// #include <stdio.h>                        // Header File For Standard Input/Output    ( ADD )
-// #include <stdarg.h>                       // Header File For Variable Argument Routines   ( ADD )
+// #include <stdio.h>                        // Header File For Standard Input/Output
+// #include <stdarg.h>                       // Header File For Variable Argument Routines
 // #include <gl\gl.h>                        // Header File For The OpenGL32 Library
 // #include <gl\glu.h>                       // Header File For The GLu32 Library
 
@@ -19,24 +19,24 @@ GLvoid BuildFontWithEnum(FONT fontEnum, int fontSize)
 {
     switch (fontEnum)
     {
-    case ARIAL:
-        BuildFont("Arial", fontSize);
-        break;
-    case COURIERNEW:
-        BuildFont("Courier New", fontSize);
-        break;
-    case CALIBRI:
-        BuildFont("Calibri", fontSize);
-        break;
-    case TIMESNEWROMAN:
-        BuildFont("Times New Roman", fontSize);
-        break;
-    case BOOKANTIQUA:
-        BuildFont("Book Antiqua", fontSize);
-        break;
-    case TREBUCHETMS:
-        BuildFont("Book Antiqua", fontSize);
-        break;
+        case ARIAL:
+            BuildFont("Arial", fontSize);
+            break;
+        case COURIERNEW:
+            BuildFont("Courier New", fontSize);
+            break;
+        case CALIBRI:
+            BuildFont("Calibri", fontSize);
+            break;
+        case TIMESNEWROMAN:
+            BuildFont("Times New Roman", fontSize);
+            break;
+        case BOOKANTIQUA:
+            BuildFont("Book Antiqua", fontSize);
+            break;
+        case TREBUCHETMS:
+            BuildFont("Book Antiqua", fontSize);
+            break;
     }
 }
 
@@ -49,7 +49,7 @@ GLvoid BuildFont(const char* fontName, int fontSize)
     HFONT   font;                       // Windows Font ID
     HFONT   oldfont;                    // Used For Good House Keeping
 
-    base = glGenLists(96);                  // Storage For 96 Characters ( NEW )
+    base = glGenLists(96);                  // Storage For 96 Characters
 
     font = CreateFont(-fontSize, // Height Of Fonts
         0,              // Width Of Font
@@ -89,11 +89,11 @@ GLvoid glPrint(const char* fmt, ...)                // Custom GL "Print" Routine
         vsprintf(text, fmt, ap);                // And Converts Symbols To Actual Numbers
     va_end(ap);                     // Results Are Stored In Text
 
-    glPushAttrib(GL_LIST_BIT);              // Pushes The Display List Bits     ( NEW )
-    glListBase(base - 32);                  // Sets The Base Character to 32    ( NEW )
+    glPushAttrib(GL_LIST_BIT);              // Pushes The Display List Bits
+    glListBase(base - 32);                  // Sets The Base Character to 32
 
-    glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);  // Draws The Display List Text  ( NEW )
-    glPopAttrib();                      // Pops The Display List Bits   ( NEW )
+    glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);  // Draws The Display List Text
+    glPopAttrib();                      // Pops The Display List Bits
 }
 
 int InitFont(GLvoid)                      // All Setup For OpenGL Goes Here

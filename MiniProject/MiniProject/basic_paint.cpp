@@ -14,6 +14,7 @@ interfacing with a window system */
 //Adding New 20203044
 #define PEN 6
 #define ERASER 7
+#define DRAW_SELECT 8
 
 #define MAX_KEY 256             // Max Text Length
 #define FONTDELTASIZE (int)5;   // Delta of font size for setting the font size
@@ -32,13 +33,17 @@ void middle_menu(int);
 void color_menu(int);
 void pixel_menu(int);
 void fill_menu(int);
-void font_menu(int id);
-void font_size_menu(int id);
+void font_menu(int);
+void font_size_menu(int);
 int pick(int, int);
 
 //Adding New 20203044
 void motionFunc(int x, int y);
 bool isInTheRect(int x, int y, int left, int top, int right, int bottom);
+void swap(int*, int*);
+void copy(int, int);
+void paste(int, int);
+void draw_select_box(int, int, int, int);
 
 /* globals */
 
@@ -51,7 +56,6 @@ int count;
 int xp[2], yp[2];
 const int boxSize = 30;
 
-
 int draw_mode = 0; /* drawing mode */
 int rx, ry; /*raster position*/
 int key_count = 0; /* a counter for text string */
@@ -62,7 +66,15 @@ int fill = 0; /* fill flag */
 
 char key_buffer[MAX_KEY];           /* Text buffer */
 FONT font = ARIAL;                  /* Font Storage */
+FONT built_font = ARIAL;                  /* Font Storage(Current built font) */
 int font_size = DEFAULTFONTSIZE;    /* Font Size */
+int built_font_size = DEFAULTFONTSIZE;    /* Font Size(Current built font size) */
+
+int is_selected = FALSE;
+int hold_left_btn = FALSE;
+GLubyte* pixels = NULL; /* Copied pixels */
+GLsizei copy_width = 0;
+GLsizei copy_height = 0;
 
 
 void drawSquare(int x, int y)
@@ -128,10 +140,13 @@ void mouse(int btn, int state, int x, int y)
 {
     static int count;
     int where;
-    static int xp[2],yp[2];
+    // static int xp[2],yp[2];
     if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
     {
         glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+        // Debug
+        // printf("click! %d\n", draw_mode);
 
         where = pick(x, y);
         glColor3f(r, g, b);
@@ -235,26 +250,67 @@ void mouse(int btn, int state, int x, int y)
 
                 break;
             }
+            case(DRAW_SELECT):
+                printf("%s\n", is_selected ? "Selected" : "Not Selected");
+                if (!is_selected)
+                {
+                    xp[0] = x;
+                    yp[0] = y;
+                    hold_left_btn = TRUE;
+                    printf("current p = (%d, %d)\n", x, y);
+                }
+                break;
         }
 
         glPopAttrib();
         glFlush();
+    }
+
+    if (btn == GLUT_LEFT_BUTTON && state == GLUT_UP)
+    {
+        // printf("UP! %d\n", draw_mode);
+        where = pick(x, y);
+
+        if (draw_mode == DRAW_SELECT && where == 0)
+        {
+            if (x != xp[0] && y != yp[0] && !is_selected)
+            {
+                is_selected = TRUE;
+                xp[1] = x;
+                yp[1] = y;
+
+                if (xp[0] > xp[1])
+                    swap(&xp[0], &xp[1]);
+                if (yp[0] > yp[1])
+                    swap(&yp[0], &yp[1]);
+
+                draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
+
+            }
+            else if (is_selected)
+            {
+                is_selected = FALSE;
+                draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
+            }
+            hold_left_btn = FALSE;
+        }
     }
 }
 
 int pick(int x, int y)
 {
     y = wh - y;
-	if (y < wh - ww / 10) return 0;
-	else if (x < ww / 10) return DRAW_LINE;
-	else if (x < ww / 5) return DRAW_RECTANGLE;
-	else if (x < 3 * ww / 10) return DRAW_TRIANGLE;
-	else if (x < 2 * ww / 5) return DRAW_POINTS;
-	else if (x < ww / 2) return DRAW_TEXT;
+    if (y < wh - ww / 10) return 0;
+    else if (x < ww / 10) return DRAW_LINE;
+    else if (x < ww / 5) return DRAW_RECTANGLE;
+    else if (x < 3 * ww / 10) return DRAW_TRIANGLE;
+    else if (x < 2 * ww / 5) return DRAW_POINTS;
+    else if (x < ww / 2) return DRAW_TEXT;
 
-	//Adding Pen Tool
-	else if (x < 6 * ww / 10) return PEN;
-	else if (x < wh - ww / 10) return ERASER;
+    //Adding Pen Tool
+    else if (x < 6 * ww / 10) return PEN;
+    else if (x < 7 * ww / 10) return ERASER;
+    else if (x < 8 * ww / 10) return DRAW_SELECT; // Select tool
 
     else return 0;
 }
@@ -322,6 +378,8 @@ void font_menu(int id)
         glPrint(key_buffer);
     }
 
+    built_font = font;
+    built_font_size = font_size;
     BuildFontWithEnum(font, font_size);
 
     // re-draw texts
@@ -332,8 +390,6 @@ void font_menu(int id)
         glPrint(key_buffer);
         glFlush();
         glDisable(GL_COLOR_LOGIC_OP);
-
-        glFlush();
     }
 }
 
@@ -372,6 +428,8 @@ void font_size_menu(int id)
         font_size = 5;
     }
 
+    built_font = font;
+    built_font_size = font_size;
     BuildFontWithEnum(font, font_size);
 
     // re-draw text
@@ -388,8 +446,44 @@ void font_size_menu(int id)
 // key callback function for entering text.
 void key(unsigned char k, int xx, int yy)
 {
+    // Copy and Paste Tool
+    if (glutGetModifiers() == GLUT_ACTIVE_CTRL)
+    {
+        k += 96;
+        if (k == 'c' && draw_mode == DRAW_SELECT && is_selected)
+        {
+            is_selected = FALSE;
+            draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
+            copy(xx, yy);
+            printf("COPY\n");
+        }
+        else if (k == 'v' && pixels != NULL)
+        {
+
+            is_selected = TRUE;
+            paste(xx, yy);
+            xp[0] = xx;
+            yp[0] = yy;
+            xp[1] = xx + copy_width;
+            yp[1] = yy + copy_height;
+
+            draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
+
+            printf("PASTE");
+        }
+        return;
+    }
+
+    // Text Tool
     if (draw_mode != DRAW_TEXT) return;
     if (k != 8 && k < 32) return; // exclude Control keys(000~031) except Backspace (008)
+
+    if (built_font != font || built_font_size != font_size)
+    {
+        built_font = font;
+        built_font_size = font_size;
+        BuildFontWithEnum(font, font_size);
+    }
 
     // Erase the text.
     glEnable(GL_COLOR_LOGIC_OP);
@@ -404,7 +498,7 @@ void key(unsigned char k, int xx, int yy)
         key_count--;
         key_buffer[key_count] = '\0';
     }
-    else if (key_count < MAX_KEY - 1)
+    if (k != 8 && key_count < MAX_KEY - 1)
     {
         // if the user enters normal keys, record it in the key buffer.
         key_buffer[key_count] = k;
@@ -420,6 +514,107 @@ void key(unsigned char k, int xx, int yy)
     glDisable(GL_COLOR_LOGIC_OP);
 }
 
+void swap(int* p1, int* p2)
+{
+    int temp = *p1;
+    *p1 = *p2;
+    *p2 = temp;
+}
+
+void copy(int x, int y)
+{
+    int bytes_per_pixel = 4;
+    int size;
+    
+    if (pixels) free(pixels);
+
+    copy_width = xp[1] - xp[0];
+    copy_height = yp[1] - yp[0];
+    size = copy_width * copy_height * bytes_per_pixel;
+    pixels = (GLubyte*)malloc(size * sizeof(GLubyte));
+
+    int gl_x = xp[0];
+    int gl_y = wh - yp[0] - copy_height;
+    
+    glReadPixels(gl_x, gl_y, copy_width, copy_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+}
+
+void paste(int x, int y)
+{
+    int gl_x = x;
+    int gl_y = wh - y - copy_height;
+
+    // constrict the range of y 
+    if (gl_y < 0) gl_y = 0;
+    if (gl_y > wh - copy_height - ww / 10) gl_y = wh - copy_height - ww / 10;
+
+    glRasterPos2i(gl_x, gl_y);
+    glDrawPixels(copy_width, copy_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+    glFlush();
+}
+
+void draw_select_box(int x, int y, int width, int height)
+{
+    if (width < 0)
+    {
+        x += width;
+        width *= -1;
+    }
+    if (height < 0)
+    {
+        y += height;
+        height *= -1;
+    }
+
+    glColor3f(0.3, 0.3, 0.3);
+    glLineWidth(3.0);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glLogicOp(GL_XOR);
+    glBegin(GL_LINES);
+    {
+        int init_x = x;
+        int init_y = wh - y - height;
+        int i;
+        int horizontal_dots = width / 5;
+        int vertical_dots = height / 5;
+        int len = 5;
+
+        horizontal_dots -= horizontal_dots % 2;
+        vertical_dots -= vertical_dots % 2;
+
+        // Western dotted line
+        for (i = 1; i <= vertical_dots; i++)
+        {
+            glVertex2i(init_x, init_y + i * len);
+        }
+
+        // Eastern dotted line
+        
+        for (i = 1; i <= vertical_dots; i++)
+        {
+            glVertex2i(init_x + width, init_y + i * len);
+        }
+
+        // Southern dotted line
+        for (i = 1; i <= horizontal_dots; i++)
+        {
+            glVertex2i(init_x + i * len, init_y);
+        }
+
+        // Northern dotted line
+        for (i = 1; i <= horizontal_dots; i++)
+        {
+            glVertex2i(init_x + i * len, init_y + height);
+        }
+    }
+    glEnd();
+    glFlush();
+    glDisable(GL_COLOR_LOGIC_OP);
+
+    glLineWidth(1.0);
+}
+
 void display(void)
 {
 	int shift = 0;
@@ -432,22 +627,24 @@ void display(void)
     glColor3f(1.0, 0.0, 0.0);
     screen_box(ww/10,wh-ww/10,ww/10);
     glColor3f(0.0, 1.0, 0.0);
-
     screen_box(ww/5,wh-ww/10,ww/10);
-    glColor3f(0.0, 1.0, 1.0);//Eraser Menu Color
 
-	screen_box(6 * ww / 10, wh - ww / 10, ww / 10);
-	glColor3f(1.0, 1.0, 1.0); //Pen Menu Color
-
-	screen_box(5 * ww / 10, wh - ww / 10, ww / 10);
-	glColor3f(1.0, 0, 1.0); //Point Menu Color
-
-    screen_box(3*ww/10,wh-ww/10,ww/10);
+    glColor3f(1.0, 0, 1.0); //Point Menu Color
+    screen_box(3 * ww / 10, wh - ww / 10, ww / 10);
+    
     glColor3f(1.0, 1.0, 0.0);//Text Menu Color
+    screen_box(2 * ww / 5, wh - ww / 10, ww / 10);
 
-    screen_box(2*ww/5,wh-ww/10,ww/10);
+	glColor3f(1.0, 1.0, 1.0); //Pen Menu Color
+	screen_box(5 * ww / 10, wh - ww / 10, ww / 10);
+
+    glColor3f(0.0, 1.0, 1.0);//Eraser Menu Color
+    screen_box(6 * ww / 10, wh - ww / 10, ww / 10);
+
+    glColor3f(0.4, 0.4, 0.4); // Select Menu Color
+    screen_box(7 * ww / 10, wh - ww / 10, ww / 10);
+
     glColor3f(0.0, 0.0, 0.0); //Menu Contents' Color
-
 	screen_box(ww/10+ww/40,wh-ww/10+ww/40,ww/20);
     glBegin(GL_LINES);
     {
@@ -471,32 +668,62 @@ void display(void)
     glEnd();
 
 	//ABC Menu , Fix Contents' Text to be in Center of each boxes.
-	glRasterPos2i(2*ww/4.8,wh-ww/20);
-	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'A');
-	shift=glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'A');
-	glRasterPos2i(2*ww/4.8+shift,wh-ww/20);
-	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'B');
-	shift+=glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'B');
-	glRasterPos2i(2*ww/4.8+shift,wh-ww/20);
-	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'C');
+    int f_size = ww / 30;
+    if (built_font != ARIAL || built_font_size != f_size)
+    {
+        built_font = ARIAL;
+        built_font_size = f_size;
+        glColor3f(0.0, 0.0, 0.0);
+        BuildFontWithEnum(built_font, built_font_size);
+    }
+    
+
+	glRasterPos2i(2 * ww / 5 + ww / 120 , wh - ww / 16);
+    glPrint("TEXT");
 
 	//Pen Menu
-	glRasterPos2i(2 * ww / 3.8, wh - ww / 20);
-	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'P');
-	shift = glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'P');
-	glRasterPos2i(2 * ww / 3.8 + shift, wh - ww / 20);
-	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'E');
-	shift += glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'E');
-	glRasterPos2i(2 * ww / 3.8 + shift, wh - ww / 20);
-	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'N');
+	glRasterPos2i(ww / 2 + ww / 80, wh - ww / 16);
+    glPrint("PEN");
 
 	//Eraser Menu
-	glRasterPos2i(2 * ww / 3.1, wh - ww / 20);
-	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'E');
-	shift = glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'E');
+    glRasterPos2i(3 * ww / 5 + ww / 200, wh - ww / 16);
+    glPrint("Erase");
+
+    // Select Menu
+    glColor3f(1.0, 1.0, 1.0);
+    glLineWidth(ww / 500.0);
+    glBegin(GL_LINES);
+    {
+        int init_x = 7 * ww / 10 + ww / 40;
+        int init_y = wh - ww / 10 + ww / 40;
+        int i;
+
+        // Western dotted line
+        for (i = 1; i < 7; i++)
+        {
+            glVertex2i(init_x, init_y + i * ww / 140);
+        }
+
+        // Eastern dotted line
+        for (i = 1; i < 7; i++)
+        {
+            glVertex2i(init_x + ww / 20, init_y + i * ww / 140);
+        }
+
+        // Southern dotted line
+        for (i = 1; i < 7; i++)
+        {
+            glVertex2i(init_x + i * ww / 140, init_y);
+        }
+        // Northern dotted line
+        for (i = 1; i < 7; i++)
+        {
+            glVertex2i(init_x + i * ww / 140, init_y + ww / 20);
+        }
+    }
+    glEnd();
 	glFlush();
 	glPopAttrib();
-
 }
 
 //Adding New 20203044
@@ -539,7 +766,7 @@ void motionFunc(int x, int y)
 	}
 
 	}
-    // glFlush();
+    glFlush();
 	pick(x, y);
 }
 
@@ -617,6 +844,9 @@ int main(int argc, char** argv)
     glutMotionFunc(motionFunc);
     glutMainLoop();
     atexit(KillFont); // EXIT
+
+    if (pixels != NULL)
+        free(pixels);
 
     return 0;
 }
