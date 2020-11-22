@@ -270,14 +270,17 @@ void mouse(int btn, int state, int x, int y)
                 if (!is_selected)
                 {
                     xp[0] = x;
-                    yp[0] = y;
+                    if (y < ww / 10)
+                        yp[0] = ww / 10;
+                    else
+                        yp[0] = y;
                     hold_left_btn = TRUE;
                 }
                 break;
             case(DRAW_CIRCLE):
                 if (count == 0)
                 {
-                    if (!isInTheRect(x, wh - y, 0, wh - wh / 10, ww, 0))
+                    if (!isInTheRect(x, wh - y, 0, wh - ww / 10, ww, 0))
                         break;
                     xp[0] = x;
                     yp[0] = y;
@@ -356,6 +359,10 @@ void mouse(int btn, int state, int x, int y)
             case(SELECT):
                 if (where != 0)
                     return;
+
+                // restrict select area
+                if (y < ww / 10)
+                    y = ww / 10;
 
                 if (x != xp[0] && y != yp[0] && !is_selected)
                 {
@@ -593,11 +600,23 @@ void key(unsigned char k, int xx, int yy)
             }
 
             is_selected = TRUE;
-            paste(xx, yy);
-            xp[0] = xx;
-            yp[0] = yy;
+            // Restrict area (upper left point)
+            if (xx < 0)
+                xp[0] = 0;
+            else
+                xp[0] = xx;
+
+            if (yy < ww / 10)
+                yp[0] = ww / 10;
+            else if (yy + copy_height > wh)
+                yp[0] = wh - copy_height;
+            else
+                yp[0] = yy;
+
             xp[1] = xx + copy_width;
-            yp[1] = yy + copy_height;
+            yp[1] = yp[0] + copy_height;
+
+            paste(xp[0], yp[0]);
 
             draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
             printf("PASTE\n");
@@ -678,7 +697,7 @@ void paste(int x, int y)
     int gl_y = wh - y - copy_height;
 
     // constrict the range of y 
-    if (gl_y < 0) gl_y = 0;
+    //if (gl_y < 0) gl_y = 0; // copy 영역도 fix되게 하자.
     if (gl_y > wh - copy_height - ww / 10) gl_y = wh - copy_height - ww / 10;
 
     glRasterPos2i(gl_x, gl_y);
@@ -980,7 +999,7 @@ void motionFunc(int x, int y)
 		    glColor4f(0.8, 0.8, 0.8, a);
 		    glLineWidth(lineWidth * 5);
 	    case(PEN):
-		    if (isInTheRect(x, y, 20, wh - ww / 10, ww - 0, 0)) {
+		    if (isInTheRect(x, y, 0, wh - ww / 10, ww - 0, 0)) {
 			    glBegin(GL_LINES);
 			    glVertex2i(x, wh - y);
 			    glVertex2i(xp[0], wh - yp[0]);
