@@ -15,6 +15,7 @@ interfacing with a window system */
 #define PEN 6
 #define ERASER 7
 #define SELECT 8
+#define DRAW_CIRCLE 9
 
 #define MAX_KEY 256             // Max Text Length
 #define FONTDELTASIZE (int)5;   // Delta of font size for setting the font size
@@ -38,14 +39,15 @@ void font_size_menu(int);
 int pick(int, int);
 
 //Adding New 20203044
-void motionFunc(int x, int y);
-bool isInTheRect(int x, int y, int left, int top, int right, int bottom);
-void draw_menu(int target_menu, int x, int y, int len);
-void menuHighLight(void);
+void motionFunc(int, int);
+bool isInTheRect(int, int, int, int, int, int);
+void draw_menu(int, int, int, int);
+void menuHighlight(void);
 void swap(int*, int*);
 void copy(int, int);
 void paste(int, int);
 void draw_select_box(int, int, int, int);
+void draw_circle(int, int, int, int);
 
 /* globals */
 
@@ -54,7 +56,6 @@ GLfloat size = 3.0;   /* half side length of square */
 
 //Adding New 20203044
 GLfloat lineWidth = 1.0; // Line Size
-int count;
 int rubberband = 0;
 int xp[2], yp[2];
 
@@ -155,7 +156,12 @@ void mouse(int btn, int state, int x, int y)
         {
             count = 0;
             draw_mode = where;
-            menuHighLight();
+
+            if (is_selected) // De-select the area.
+            {
+                is_selected = FALSE;
+                draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
+            }
         }
         else switch (draw_mode)
         {
@@ -165,6 +171,20 @@ void mouse(int btn, int state, int x, int y)
                     count++;
                     xp[0] = x;
                     yp[0] = wh - y;
+                    xp[1] = x;
+                    yp[1] = wh - y;
+                    rubberband = 1;
+
+                    glEnable(GL_COLOR_LOGIC_OP);
+                    glLogicOp(GL_XOR);
+
+                    glBegin(GL_LINE);
+                    glVertex2i(xp[0], yp[0]);
+                    glVertex2i(xp[0], yp[0]);
+                    glEnd();
+
+                    glFlush();
+                    glDisable(GL_COLOR_LOGIC_OP);
                 }
                 break;
             case(DRAW_RECTANGLE):
@@ -173,6 +193,22 @@ void mouse(int btn, int state, int x, int y)
                     count++;
                     xp[0] = x;
                     yp[0] = wh - y;
+                    xp[1] = x;
+                    yp[1] = wh - y;
+                    rubberband = 1;
+
+                    glEnable(GL_COLOR_LOGIC_OP);
+                    glLogicOp(GL_XOR);
+
+                    glBegin(GL_LINE_LOOP); // 이전의 RubberBand_rect 지우기
+                    glVertex2i(xp[1], yp[1]);
+                    glVertex2i(xp[1], yp[0]);
+                    glVertex2i(xp[0], yp[0]);
+                    glVertex2i(xp[0], yp[1]);
+                    glEnd();
+
+                    glFlush();
+                    glDisable(GL_COLOR_LOGIC_OP);
                 }
                 break;
             case (DRAW_TRIANGLE):
@@ -236,7 +272,30 @@ void mouse(int btn, int state, int x, int y)
                     xp[0] = x;
                     yp[0] = y;
                     hold_left_btn = TRUE;
-                    printf("current p = (%d, %d)\n", x, y);
+                }
+                break;
+            case(DRAW_CIRCLE):
+                if (count == 0)
+                {
+                    if (!isInTheRect(x, wh - y, 0, wh - wh / 10, ww, 0))
+                        break;
+                    xp[0] = x;
+                    yp[0] = y;
+                    xp[1] = x;
+                    yp[1] = y;
+
+                    glEnable(GL_COLOR_LOGIC_OP);
+                    glLogicOp(GL_XOR);
+
+                    if (!(r == 1.0 && g == 1.0 && b == 1.0))
+                        glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
+                    
+                    draw_circle(xp[0], wh - yp[0], 0, fill);
+
+                    glDisable(GL_COLOR_LOGIC_OP);
+
+                    count++;
+                    rubberband = 1;
                 }
                 break;
         }
@@ -269,9 +328,16 @@ void mouse(int btn, int state, int x, int y)
                 {
                     glColor3f(r, g, b);
                     if (fill)
+                    {
                         glBegin(GL_POLYGON);
-                    else
-                        glBegin(GL_LINE_LOOP);
+                        glVertex2i(x, wh - y);
+                        glVertex2i(x, yp[0]);
+                        glVertex2i(xp[0], yp[0]);
+                        glVertex2i(xp[0], wh - y);
+                        glEnd();
+                    }
+                    
+                    glBegin(GL_LINE_LOOP);
                     glVertex2i(x, wh - y);
                     glVertex2i(x, yp[0]);
                     glVertex2i(xp[0], yp[0]);
@@ -284,8 +350,6 @@ void mouse(int btn, int state, int x, int y)
                 break;
             case(PEN):
             case(ERASER):
-                /*xp[0] = x;
-                yp[0] = y;*/
                 xp[1] = x;
                 yp[1] = y;
                 break;
@@ -314,23 +378,36 @@ void mouse(int btn, int state, int x, int y)
                 }
                 hold_left_btn = FALSE;
                 break;
+            case (DRAW_CIRCLE):
+                if (where == DRAW_NULL && count == 1)
+                {
+                    glColor3f(r, g, b);
+                    int r = (int)sqrtf((float)((x - xp[0]) * (x - xp[0]) + (y - yp[0]) * (y - yp[0])));
+                    draw_circle(xp[0], wh - yp[0], r, fill);
+
+                    draw_mode = 0;
+                    count = 0;
+                    rubberband = 0;                    
+                }
+                break;
         }
     }
+    menuHighlight();
 }
 
 int pick(int x, int y)
 {
     y = wh - y;
     if (y < wh - ww / 10) return 0;
-    else if (x < ww / 10) return DRAW_LINE;
-    else if (x < ww / 5) return DRAW_RECTANGLE;
-    else if (x < 3 * ww / 10) return DRAW_TRIANGLE;
-    else if (x < 2 * ww / 5) return DRAW_POINTS;
-    else if (x < ww / 2) return DRAW_TEXT;
-
+    else if (x < ww / 10) return DRAW_LINE; // Line tool
+    else if (x < ww / 5) return DRAW_RECTANGLE; // Rect tool
+    else if (x < 3 * ww / 10) return DRAW_TRIANGLE; // Triangle Tool
+    else if (x < 2 * ww / 5) return DRAW_POINTS; // Point Tool
+    else if (x < ww / 2) return DRAW_TEXT; // Text Tool
     else if (x < 6 * ww / 10) return PEN; // Pen Tool
     else if (x < 7 * ww / 10) return ERASER; // Eraser Tool
     else if (x < 8 * ww / 10) return SELECT; // Select tool
+    else if (x < 9 * ww / 10) return DRAW_CIRCLE; // Select tool
 
     else return 0;
 }
@@ -561,6 +638,8 @@ void key(unsigned char k, int xx, int yy)
 
     // Redraw the text
     glColor3f(1.0f - r, 1.0f - g, 1.0f - b);
+    if (!(r == 1.0 && g == 1.0 && b == 1.0))
+        glColor3f(1.0 - r, 1.0 - g, 1.0 - b); // If color is white, replace color with white color
     glRasterPos2i(rx, ry);
     glPrint(key_buffer);
     
@@ -669,12 +748,52 @@ void draw_select_box(int x, int y, int width, int height)
     glLineWidth(1.0);
 }
 
+// 브레스넘 알고리즘을 통한 원 그리기 함수
+void draw_circle(int cx, int cy, int r, int fill)
+{
+    int x, y, p;
+    x = 0; y = r;
+    p = 3 - (r << 1); // 2 * r - 3
+    if (fill)
+        glBegin(GL_LINES);
+    else
+        glBegin(GL_POINTS);
+
+    while (x <= y)
+    {
+        glVertex2i(cx + x, cy + y);
+        glVertex2i(cx - x, cy + y);
+
+        glVertex2i(cx + x, cy - y);
+        glVertex2i(cx - x, cy - y);
+
+        glVertex2i(cx + y, cy + x);
+        glVertex2i(cx - y, cy + x);
+
+        glVertex2i(cx + y, cy - x);
+        glVertex2i(cx - y, cy - x);
+        if (p <= 0) // draw a point at east.
+        {
+            p += (x << 2) + 6; // P(k+1) = P(k) + 4xk + 6
+        }
+        else
+        {
+            p += ((x - y) << 2) + 10; // P(k+1) = P(k) + 4(xk - yk) + 10
+            y--;
+        }
+        x++;
+    }
+
+    glEnd();
+    glFlush();
+}
+
 void display(void)
 {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glClearColor (0.8, 0.8, 0.8, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
-	menuHighLight();
+	menuHighlight();
 	glPopAttrib();
 }
 
@@ -688,7 +807,7 @@ void draw_menu(int target_menu, int x, int y, int len)
     screen_box(x, y, len);
 }
 
-void menuHighLight(void)
+void menuHighlight(void)
 {
     glLineWidth(1);
 
@@ -715,6 +834,9 @@ void menuHighLight(void)
 
     // Select Menu
     draw_menu(SELECT, 7 * ww / 10, wh - ww / 10, ww / 10);
+
+    // Circle Menu
+    draw_menu(DRAW_CIRCLE, 8 * ww / 10, wh - ww / 10, ww / 10);
 
 	glColor3f(0.0, 0.0, 0.0); //Menu Contents' Color
 
@@ -755,7 +877,7 @@ void menuHighLight(void)
     glPrint("Erase");
 
     // Select Menu
-    glColor3f(0.5, 0.5, 0.5);
+    glColor3f(0.0, 0.0, 0.0);
     glLineWidth(ww / 500.0);
     glBegin(GL_LINES);
     {
@@ -780,6 +902,11 @@ void menuHighLight(void)
             glVertex2i(init_x + i * ww / 140, init_y + ww / 20);
     }
     glEnd();
+
+    // Circle Menu
+    glColor3f(0.0, 0.0, 0.0);
+    draw_circle(round(8.5 * ww / 10.0), wh - ww / 20, ww / 40, 0);
+
 	glFlush();
 }
 
@@ -792,64 +919,62 @@ void motionFunc(int x, int y)
 	switch (draw_mode)
 	{
         case(DRAW_LINE):
-            y = wh - y;
-            glEnable(GL_COLOR_LOGIC_OP);
-            glLogicOp(GL_XOR); // XOR 연산
-            glBegin(GL_LINES);
-
-            if (!(r == 1.0 && g == 1.0 && b == 1.0))
-                glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
-
-            if (rubberband) // 이전의 RubberBand_line 지우기
-            {
-                glVertex2i(xp[0], yp[0]);
-                glVertex2i(xp[1], yp[1]);
-            }
-            glVertex2i(xp[0], yp[0]); // 새로운 RubberBand_line 그리기
-            glVertex2i(x, y);
-            glEnd();
-            glFlush();
-
-            // printf("xp[1] = %d, x = %d\nyp[1] = %d, y = %d\n", xp[1], x, yp[1], y);
-            xp[1] = x; // RubberBand_line의 끝 점 유지하기
-            yp[1] = y;
-
-            rubberband = 1; // 새로운 vertex가 찍혔을때 기존의 RubberBand_line 끊기
-            glLogicOp(GL_COPY);
-            glDisable(GL_COLOR_LOGIC_OP);
-            break;
-        case(DRAW_RECTANGLE):
-            y = wh - y;
-            glEnable(GL_COLOR_LOGIC_OP);
-            glLogicOp(GL_XOR); // XOR연산
-
-            if (!(r == 1.0 && g == 1.0 && b == 1.0))
-                glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
-
             if (rubberband)
             {
+                y = wh - y;
+                glEnable(GL_COLOR_LOGIC_OP);
+                glLogicOp(GL_XOR); // XOR 연산
+                glBegin(GL_LINES);
+
+                if (!(r == 1.0 && g == 1.0 && b == 1.0))
+                    glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
+
+                glVertex2i(xp[0], yp[0]); // 기존 선분 지우기
+                glVertex2i(xp[1], yp[1]);
+
+                glVertex2i(xp[0], yp[0]); // 새로운 RubberBand_line 그리기
+                glVertex2i(x, y);
+                glEnd();
+
+                xp[1] = x; // RubberBand_line의 끝 점 유지하기
+                yp[1] = y;
+
+                glFlush();
+                glDisable(GL_COLOR_LOGIC_OP);
+            }
+            break;
+        case(DRAW_RECTANGLE):
+            if (rubberband)
+            {
+                y = wh - y;
+                glEnable(GL_COLOR_LOGIC_OP);
+                glLogicOp(GL_XOR); // XOR연산
+
+                if (!(r == 1.0 && g == 1.0 && b == 1.0))
+                    glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
+
                 glBegin(GL_LINE_LOOP); // 이전의 RubberBand_rect 지우기
                 glVertex2i(xp[1], yp[1]);
                 glVertex2i(xp[1], yp[0]);
                 glVertex2i(xp[0], yp[0]);
                 glVertex2i(xp[0], yp[1]);
                 glEnd();
+            
+
+                glBegin(GL_LINE_LOOP); // 새로운 RubberBand_rect 그리기
+                glVertex2i(x, y);
+                glVertex2i(x, yp[0]);
+                glVertex2i(xp[0], yp[0]);
+                glVertex2i(xp[0], y);
+                glEnd();
+                glFlush();
+
+                xp[1] = x; // RubberBand_rect의 끝 점 유지
+                yp[1] = y;
+
+                rubberband = 1; // 새로운 vertex가 찍혔을때 기존의 RubberBand_rect 끊기
+                glDisable(GL_COLOR_LOGIC_OP);
             }
-
-            glBegin(GL_LINE_LOOP); // 새로운 RubberBand_rect 그리기
-            glVertex2i(x, y);
-            glVertex2i(x, yp[0]);
-            glVertex2i(xp[0], yp[0]);
-            glVertex2i(xp[0], y);
-            glEnd();
-            glFlush();
-
-            xp[1] = x; // RubberBand_rect의 끝 점 유지
-            yp[1] = y;
-
-            rubberband = 1; // 새로운 vertex가 찍혔을때 기존의 RubberBand_rect 끊기
-            glLogicOp(GL_COPY);
-            glDisable(GL_COLOR_LOGIC_OP);
             break;
 	    case(ERASER):
 		    glColor4f(0.8, 0.8, 0.8, a);
@@ -865,8 +990,35 @@ void motionFunc(int x, int y)
 		    }
 		    glFlush();
 		    break;
+        case(DRAW_CIRCLE):
+            if (rubberband)
+            {
+                glEnable(GL_COLOR_LOGIC_OP);
+                glLogicOp(GL_XOR);
+
+                if (!(r == 1.0 && g == 1.0 && b == 1.0))
+                    glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
+
+                int cur_x = xp[1];
+                int cur_y = yp[1];
+                int r = (int)sqrtf((float)((cur_x - xp[0]) * (cur_x - xp[0]) + (cur_y - yp[0]) * (cur_y - yp[0])));
+                draw_circle(xp[0], wh - yp[0], r, fill);
+
+                xp[1] = x;
+                yp[1] = y;
+
+                cur_x = x;
+                cur_y = y;
+                r = (int)sqrtf((float)((cur_x - xp[0]) * (cur_x - xp[0]) + (cur_y - yp[0]) * (cur_y - yp[0])));
+                draw_circle(xp[0], wh - yp[0], r, fill);
+
+                //glLogicOp(GL_XOR);
+                glDisable(GL_COLOR_LOGIC_OP);
+            }
+            break;
 	}
 }
+
 
 bool isInTheRect(int x, int y, int left, int top, int right, int bottom) {
 	if(left <= x && x < right && bottom <= y && y < top)
