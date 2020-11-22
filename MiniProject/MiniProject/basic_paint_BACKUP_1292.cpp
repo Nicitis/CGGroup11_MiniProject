@@ -14,7 +14,7 @@ interfacing with a window system */
 //Adding New 20203044
 #define PEN 6
 #define ERASER 7
-#define SELECT 8
+#define DRAW_SELECT 8
 
 #define MAX_KEY 256             // Max Text Length
 #define FONTDELTASIZE (int)5;   // Delta of font size for setting the font size
@@ -40,12 +40,14 @@ int pick(int, int);
 //Adding New 20203044
 void motionFunc(int x, int y);
 bool isInTheRect(int x, int y, int left, int top, int right, int bottom);
-void draw_menu(int target_menu, int x, int y, int len);
+<<<<<<< HEAD
 void menuHighLight(void);
+=======
 void swap(int*, int*);
 void copy(int, int);
 void paste(int, int);
 void draw_select_box(int, int, int, int);
+>>>>>>> Minseo
 
 /* globals */
 
@@ -141,6 +143,138 @@ void myinit(void)
 
 void mouse(int btn, int state, int x, int y)
 {
+<<<<<<< HEAD
+	static int count;
+	int where;
+	static int xp[2], yp[2];
+	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+	{
+		glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+		where = pick(x, y);
+		glColor3f(r, g, b);
+		if (where != 0)
+		{
+			count = 0;
+			draw_mode = where;
+			menuHighLight();
+		}
+		else
+		{
+			switch (draw_mode)
+			{
+				case(LINE):
+					if (count == 0)
+					{
+						count++;
+						xp[0] = x;
+						yp[0] = y;
+					}
+					else
+					{
+						glBegin(GL_LINES);
+						glVertex2i(x, wh - y);
+						glVertex2i(xp[0], wh - yp[0]);
+						glEnd();
+						draw_mode = 0;
+						count = 0;
+					}
+					break;
+				case(RECTANGLE):
+					if (count == 0)
+					{
+						count++;
+						xp[0] = x;
+						yp[0] = y;
+					}
+					else
+					{
+						if (fill) glBegin(GL_POLYGON);
+						else glBegin(GL_LINE_LOOP);
+						glVertex2i(x, wh - y);
+						glVertex2i(x, wh - yp[0]);
+						glVertex2i(xp[0], wh - yp[0]);
+						glVertex2i(xp[0], wh - y);
+						glEnd();
+						draw_mode = 0;
+						count = 0;
+					}
+					break;
+				case (TRIANGLE):
+					switch (count)
+					{
+					case(0):
+						count++;
+						xp[0] = x;
+						yp[0] = y;
+						break;
+					case(1):
+						count++;
+						xp[1] = x;
+						yp[1] = y;
+						break;
+					case(2):
+						if (fill) glBegin(GL_POLYGON);
+						else glBegin(GL_LINE_LOOP);
+						glVertex2i(xp[0], wh - yp[0]);
+						glVertex2i(xp[1], wh - yp[1]);
+						glVertex2i(x, wh - y);
+						glEnd();
+						draw_mode = 0;
+						count = 0;
+					}
+					break;
+				case(POINTS):
+				{
+					drawSquare(x, y);
+					count++;
+				}
+				break;
+				case(TEXT):
+				{
+					rx = x;
+					ry = wh - y;
+					glRasterPos2i(rx, ry);
+					count = 0;
+				}
+
+				break;
+
+				case(PEN):
+				{
+					break;
+				}
+
+				case(ERASER):
+				{
+					break;
+				}
+			}
+		}
+
+		glPopAttrib();
+		glFlush();
+	}
+	else if (btn == GLUT_LEFT_BUTTON)
+	{
+		switch (draw_mode)
+		{
+			case(PEN):
+			{
+
+			}
+
+			case(ERASER):
+			{
+
+				xp[0] = x;
+				yp[0] = y;
+
+				break;
+			}
+		}
+	}
+=======
     static int count;
     int where;
     // static int xp[2],yp[2];
@@ -148,13 +282,19 @@ void mouse(int btn, int state, int x, int y)
     {
         glPushAttrib(GL_ALL_ATTRIB_BITS);
 
+        // Debug
+        // printf("click! %d\n", draw_mode);
+
         where = pick(x, y);
         glColor3f(r, g, b);
+
+        glRasterPos2i(rx, ry);
+        glPrint(key_buffer);
+
         if (where != 0)
         {
             count = 0;
             draw_mode = where;
-            menuHighLight();
         }
         else switch (draw_mode)
         {
@@ -224,12 +364,6 @@ void mouse(int btn, int state, int x, int y)
                 count++;
                 break;
             case(DRAW_TEXT):
-                if (strlen(key_buffer) > 0)
-                {
-                    glRasterPos2i(rx, ry);
-                    glPrint(key_buffer);
-                }
-
                 rx = x;
                 ry = wh - y;
                 glRasterPos2i(rx, ry);
@@ -247,10 +381,14 @@ void mouse(int btn, int state, int x, int y)
                 break;
             case(PEN):
             case(ERASER):
+            {
                 xp[0] = x;
                 yp[0] = y;
+
                 break;
-            case(SELECT):
+            }
+            case(DRAW_SELECT):
+                printf("%s\n", is_selected ? "Selected" : "Not Selected");
                 if (!is_selected)
                 {
                     xp[0] = x;
@@ -267,51 +405,53 @@ void mouse(int btn, int state, int x, int y)
 
     if (btn == GLUT_LEFT_BUTTON && state == GLUT_UP)
     {
+        // printf("UP! %d\n", draw_mode);
         where = pick(x, y);
 
-        switch (draw_mode)
+        if (draw_mode == DRAW_SELECT && where == 0)
         {
-            case(PEN):
-            case(ERASER):
-                /*xp[0] = x;
-                yp[0] = y;*/
+            if (x != xp[0] && y != yp[0] && !is_selected)
+            {
+                is_selected = TRUE;
                 xp[1] = x;
                 yp[1] = y;
-                break;
-            case(SELECT):
-                if (where != 0)
-                    return;
 
-                if (x != xp[0] && y != yp[0] && !is_selected)
-                {
-                    is_selected = TRUE;
-                    xp[1] = x;
-                    yp[1] = y;
+                if (xp[0] > xp[1])
+                    swap(&xp[0], &xp[1]);
+                if (yp[0] > yp[1])
+                    swap(&yp[0], &yp[1]);
 
-                    if (xp[0] > xp[1])
-                        swap(&xp[0], &xp[1]);
-                    if (yp[0] > yp[1])
-                        swap(&yp[0], &yp[1]);
+                draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
 
-                    printf("draw\n");
-                    draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
-
-                }
-                else if (is_selected)
-                {
-                    printf("delete\n");
-                    is_selected = FALSE;
-                    draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
-                }
-                hold_left_btn = FALSE;
-                break;
+            }
+            else if (is_selected)
+            {
+                is_selected = FALSE;
+                draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
+            }
+            hold_left_btn = FALSE;
         }
     }
+>>>>>>> Minseo
 }
 
 int pick(int x, int y)
 {
     y = wh - y;
+<<<<<<< HEAD
+	if (y < wh - ww / 10) return 0;
+	else if (x < ww / 10) return LINE;
+	else if (x < ww / 5) return RECTANGLE;
+	else if (x < 3 * ww / 10) return TRIANGLE;
+	else if (x < 2 * ww / 5) return POINTS;
+	else if (x < ww / 2) return TEXT;
+
+	//Adding Pen Tool
+	else if (x < 6 * ww / 10) return PEN;
+
+	//Adding Eraser Tool
+	else if (x < wh - ww / 10) return ERASER;
+=======
     if (y < wh - ww / 10) return 0;
     else if (x < ww / 10) return DRAW_LINE;
     else if (x < ww / 5) return DRAW_RECTANGLE;
@@ -319,9 +459,11 @@ int pick(int x, int y)
     else if (x < 2 * ww / 5) return DRAW_POINTS;
     else if (x < ww / 2) return DRAW_TEXT;
 
-    else if (x < 6 * ww / 10) return PEN; // Pen Tool
-    else if (x < 7 * ww / 10) return ERASER; // Eraser Tool
-    else if (x < 8 * ww / 10) return SELECT; // Select tool
+    //Adding Pen Tool
+    else if (x < 6 * ww / 10) return PEN;
+    else if (x < 7 * ww / 10) return ERASER;
+    else if (x < 8 * ww / 10) return DRAW_SELECT; // Select tool
+>>>>>>> Minseo
 
     else return 0;
 }
@@ -492,7 +634,7 @@ void key(unsigned char k, int xx, int yy)
     if (glutGetModifiers() == GLUT_ACTIVE_CTRL)
     {
         k += 96;
-        if (k == 'c' && draw_mode == SELECT && is_selected)
+        if (k == 'c' && draw_mode == DRAW_SELECT && is_selected)
         {
             is_selected = FALSE;
             draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
@@ -501,10 +643,6 @@ void key(unsigned char k, int xx, int yy)
         }
         else if (k == 'v' && pixels != NULL)
         {
-            if (is_selected)
-            {
-                draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
-            }
 
             is_selected = TRUE;
             paste(xx, yy);
@@ -514,7 +652,8 @@ void key(unsigned char k, int xx, int yy)
             yp[1] = yy + copy_height;
 
             draw_select_box(xp[0], yp[0], xp[1] - xp[0], yp[1] - yp[0]);
-            printf("PASTE\n");
+
+            printf("PASTE");
         }
         return;
     }
@@ -662,49 +801,265 @@ void draw_select_box(int x, int y, int width, int height)
 
 void display(void)
 {
+<<<<<<< HEAD
+	//int shift=0;
+=======
+	int shift = 0;
+
+>>>>>>> Minseo
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glClearColor (0.8, 0.8, 0.8, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 	menuHighLight();
+
+	/*
+	if (draw_mode != LINE)
+	{
+		glColor3f(1.0, 1.0, 1.0); // Line  Menu Color
+	}
+
+	else if (draw_mode == LINE)
+	{
+		glColor3f(1.0, 1.0, 0.0); // Line  Menu Color
+	}
+
+    screen_box(0,wh-ww/10,ww/10);
+
+	if (draw_mode != RECTANGLE)
+	{
+		glColor3f(1.0, 1.0, 1.0); // Sqare Menu Color
+	}
+
+	else if (draw_mode == RECTANGLE)
+	{
+		glColor3f(1.0, 1.0, 0.0); // Sqare Menu Color
+	}
+
+    screen_box(ww/10,wh-ww/10,ww/10);
+<<<<<<< HEAD
+
+	if (draw_mode != TRIANGLE)
+	{
+		glColor3f(1.0, 1.0, 1.0); // Triangle Menu Color
+	}
+
+	else if (draw_mode == TRIANGLE)
+	{
+		glColor3f(1.0, 1.0, 0.0); // Triangle Menu Color
+	}
+
+    screen_box(ww/5,wh-ww/10,ww/10);
+
+	if (draw_mode != ERASER)
+	{
+		glColor3f(1.0, 1.0, 1.0);//Eraser Menu Color
+	}
+
+	else if (draw_mode == ERASER)
+	{
+		glColor3f(1.0, 1.0, 0.0);//Eraser Menu Color
+	}
+
+	screen_box(6 * ww / 10, wh - ww / 10, ww / 10);
+
+	if (draw_mode != PEN)
+	{
+		glColor3f(1.0, 1.0, 1.0); //Pen Menu Color
+	}
+
+	else if (draw_mode == PEN)
+	{
+		glColor3f(1.0, 1.0, 0.0); //Pen Menu Color
+	}
+=======
+    glColor3f(0.0, 1.0, 0.0);
+    screen_box(ww/5,wh-ww/10,ww/10);
+
+    glColor3f(1.0, 0, 1.0); //Point Menu Color
+    screen_box(3 * ww / 10, wh - ww / 10, ww / 10);
+    
+    glColor3f(1.0, 1.0, 0.0);//Text Menu Color
+    screen_box(2 * ww / 5, wh - ww / 10, ww / 10);
+>>>>>>> Minseo
+
+	glColor3f(1.0, 1.0, 1.0); //Pen Menu Color
+	screen_box(5 * ww / 10, wh - ww / 10, ww / 10);
+<<<<<<< HEAD
+
+	if (draw_mode != POINTS)
+	{
+		glColor3f(1.0, 1.0, 1.0); //Point Menu Color
+	}
+
+	if (draw_mode == POINTS)
+	{
+		glColor3f(1.0, 1.0, 0.0); //Point Menu Color
+	}
+
+    screen_box(3*ww/10,wh-ww/10,ww/10);
+
+	if (draw_mode != TEXT)
+	{
+		glColor3f(1.0, 1.0, 1.0);//Text Menu Color
+	}
+
+	else if (draw_mode != TEXT)
+	{
+		glColor3f(1.0, 1.0, 0.0);//Text Menu Color
+	}
+
+    screen_box(2*ww/5,wh-ww/10,ww/10);
+	
+    glColor3f(0.0, 0.0, 0.0); //Menu Contents' Color
+=======
+
+    glColor3f(0.0, 1.0, 1.0);//Eraser Menu Color
+    screen_box(6 * ww / 10, wh - ww / 10, ww / 10);
+
+    glColor3f(0.4, 0.4, 0.4); // Select Menu Color
+    screen_box(7 * ww / 10, wh - ww / 10, ww / 10);
+>>>>>>> Minseo
+
+    glColor3f(0.0, 0.0, 0.0); //Menu Contents' Color
+	screen_box(ww/10+ww/40,wh-ww/10+ww/40,ww/20);
+    glBegin(GL_LINES);
+    {
+        glVertex2i(wh / 40, wh - ww / 20);
+        glVertex2i(wh / 40 + ww / 20, wh - ww / 20);
+    }
+    glEnd();
+    glBegin(GL_TRIANGLES);
+    {
+        glVertex2i(ww/5+ww/40,wh-ww/10+ww/40);
+        glVertex2i(ww/5+ww/20,wh-ww/40);
+        glVertex2i(ww/5+3*ww/40,wh-ww/10+ww/40);
+    }
+
+    glEnd();
+    glPointSize(3.0);
+    glBegin(GL_POINTS);
+    {
+        glVertex2i(3*ww/10+ww/20, wh-ww/20);
+    }
+    glEnd();
+
+	//ABC Menu , Fix Contents' Text to be in Center of each boxes.
+    int f_size = ww / 30;
+    if (built_font != ARIAL || built_font_size != f_size)
+    {
+        built_font = ARIAL;
+        built_font_size = f_size;
+        glColor3f(0.0, 0.0, 0.0);
+        BuildFontWithEnum(built_font, built_font_size);
+    }
+    
+
+	glRasterPos2i(2 * ww / 5 + ww / 120 , wh - ww / 16);
+    glPrint("TEXT");
+
+	//Pen Menu
+	glRasterPos2i(ww / 2 + ww / 80, wh - ww / 16);
+    glPrint("PEN");
+
+	//Eraser Menu
+<<<<<<< HEAD
+	glRasterPos2i(2 * ww / 3.1, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'E');
+	shift = glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'E');
+	*/
+	glFlush();
 	glPopAttrib();
-}
 
-void draw_menu(int target_menu, int x, int y, int len)
-{
-    if (draw_mode != target_menu)
-        glColor3f(1.0, 1.0, 1.0);
-    else
-        glColor3f(1.0, 1.0, 0.0);
-
-    screen_box(x, y, len);
 }
 
 void menuHighLight(void)
 {
-    glLineWidth(1);
-    // Line Menu
-    draw_menu(DRAW_LINE, 0, wh - ww / 10, ww / 10);
+	int shift = 0;
 
-    // Rectangle Menu
-    draw_menu(DRAW_RECTANGLE, ww / 10, wh - ww / 10, ww / 10);
 
-    // Triangle Menu
-    draw_menu(DRAW_TRIANGLE, ww/5,wh-ww/10, ww/10);
+	if (draw_mode != LINE)
+	{
+		glColor3f(1.0, 1.0, 1.0); // Line  Menu Color
+	}
 
-    // Point Menu
-    draw_menu(DRAW_POINTS, 3 * ww / 10, wh - ww / 10, ww / 10);
+	else if (draw_mode == LINE)
+	{
+		glColor3f(1.0, 1.0, 0.0); // Line  Menu Color
+	}
 
-    // Text Menu
-    draw_menu(DRAW_TEXT, 2 * ww / 5, wh - ww / 10, ww / 10);
+    screen_box(0,wh-ww/10,ww/10);
 
-    // Pen Menu
-    draw_menu(PEN, 5 * ww / 10, wh - ww / 10, ww / 10);
+	if (draw_mode != RECTANGLE)
+	{
+		glColor3f(1.0, 1.0, 1.0); // Sqare Menu Color
+	}
 
-    // Eraser Menu
-    draw_menu(ERASER, 6 * ww / 10, wh - ww / 10, ww / 10);
+	else if (draw_mode == RECTANGLE)
+	{
+		glColor3f(1.0, 1.0, 0.0); // Sqare Menu Color
+	}
 
-    // Select Menu
-    draw_menu(SELECT, 7 * ww / 10, wh - ww / 10, ww / 10);
+    screen_box(ww/10,wh-ww/10,ww/10);
+
+	if (draw_mode != TRIANGLE)
+	{
+		glColor3f(1.0, 1.0, 1.0); // Triangle Menu Color
+	}
+
+	else if (draw_mode == TRIANGLE)
+	{
+		glColor3f(1.0, 1.0, 0.0); // Triangle Menu Color
+	}
+
+    screen_box(ww/5,wh-ww/10,ww/10);
+
+	if (draw_mode != ERASER)
+	{
+		glColor3f(1.0, 1.0, 1.0);//Eraser Menu Color
+	}
+
+	else if (draw_mode == ERASER)
+	{
+		glColor3f(1.0, 1.0, 0.0);//Eraser Menu Color
+	}
+
+	screen_box(6 * ww / 10, wh - ww / 10, ww / 10);
+
+	if (draw_mode != PEN)
+	{
+		glColor3f(1.0, 1.0, 1.0); //Pen Menu Color
+	}
+
+	else if (draw_mode == PEN)
+	{
+		glColor3f(1.0, 1.0, 0.0); //Pen Menu Color
+	}
+
+	screen_box(5 * ww / 10, wh - ww / 10, ww / 10);
+
+	if (draw_mode != POINTS)
+	{
+		glColor3f(1.0, 1.0, 1.0); //Point Menu Color
+	}
+
+	if (draw_mode == POINTS)
+	{
+		glColor3f(1.0, 1.0, 0.0); //Point Menu Color
+	}
+
+    screen_box(3*ww/10,wh-ww/10,ww/10);
+
+	if (draw_mode != TEXT)
+	{
+		glColor3f(1.0, 1.0, 1.0);//Text Menu Color
+	}
+
+	else if (draw_mode != TEXT)
+	{
+		glColor3f(1.0, 1.0, 0.0);//Text Menu Color
+	}
+
+	screen_box(2 * ww / 5, wh - ww / 10, ww / 10);
 
 	glColor3f(0.0, 0.0, 0.0); //Menu Contents' Color
 
@@ -723,29 +1078,42 @@ void menuHighLight(void)
 	glVertex2i(3 * ww / 10 + ww / 20, wh - ww / 20);
 	glEnd();
 
-    // Text Menu
-    int f_size = ww / 30;
-    if (built_font != ARIAL || built_font_size != f_size)
-    {
-        built_font = ARIAL;
-        built_font_size = f_size;
-        glColor3f(0.0, 0.0, 0.0);
-        BuildFontWithEnum(built_font, built_font_size);
-    }
+	//ABC Menu , Fix Contents' Text to be in Center of each boxes.
+	glRasterPos2i(2 * ww / 4.8, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'A');
+	shift = glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'A');
+	glRasterPos2i(2 * ww / 4.8 + shift, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'B');
+	shift += glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'B');
+	glRasterPos2i(2 * ww / 4.8 + shift, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'C');
 
-    glRasterPos2i(2 * ww / 5 + ww / 120, wh - ww / 16);
-    glPrint("TEXT");
+	//Pen Menu
+	glRasterPos2i(2 * ww / 3.8, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'P');
+	shift = glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'P');
+	glRasterPos2i(2 * ww / 3.8 + shift, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'E');
+	shift += glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'E');
+	glRasterPos2i(2 * ww / 3.8 + shift, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'N');
 
-    //Pen Menu
-    glRasterPos2i(ww / 2 + ww / 80, wh - ww / 16);
-    glPrint("PEN");
+	//Eraser Menu
+	glRasterPos2i(2 * ww / 3.1, wh - ww / 20);
+	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'E');
+	shift = glutBitmapWidth(GLUT_BITMAP_9_BY_15, 'E');
+	glFlush();
+	glPopAttrib();
 
-    //Eraser Menu
+
+
+	glFlush();
+=======
     glRasterPos2i(3 * ww / 5 + ww / 200, wh - ww / 16);
     glPrint("Erase");
 
     // Select Menu
-    glColor3f(0.5, 0.5, 0.5);
+    glColor3f(1.0, 1.0, 1.0);
     glLineWidth(ww / 500.0);
     glBegin(GL_LINES);
     {
@@ -755,47 +1123,78 @@ void menuHighLight(void)
 
         // Western dotted line
         for (i = 1; i < 7; i++)
+        {
             glVertex2i(init_x, init_y + i * ww / 140);
+        }
 
         // Eastern dotted line
         for (i = 1; i < 7; i++)
+        {
             glVertex2i(init_x + ww / 20, init_y + i * ww / 140);
+        }
 
         // Southern dotted line
         for (i = 1; i < 7; i++)
+        {
             glVertex2i(init_x + i * ww / 140, init_y);
-
+        }
         // Northern dotted line
         for (i = 1; i < 7; i++)
+        {
             glVertex2i(init_x + i * ww / 140, init_y + ww / 20);
+        }
     }
     glEnd();
 	glFlush();
+	glPopAttrib();
+>>>>>>> Minseo
 }
 
 //Adding New 20203044
 void motionFunc(int x, int y)	
 {
 	glColor4f(r, g, b, a);
-	glLineWidth(lineWidth);
+	glLineWidth(lineWidth);				
+	if (isInTheRect(x, wh - y, ww - 190, wh - 230, ww - 10, wh - 250)) {
+		a = (GLfloat)(180 - (x - (ww - 190))) / 180;
+		count = 0;
+	}
+	if (isInTheRect(x, wh - y, ww - 190, wh - 290, ww - 10, wh - 310)) {
+		lineWidth = (GLfloat)(x - (800 - 190)) / 5 + 1;
+		count = 0;
+	}
 
 	switch (draw_mode)
+	{		
+
+	case(ERASER):
 	{
-	    case(ERASER):
-		    glColor4f(0.8, 0.8, 0.8, a);
-		    glLineWidth(lineWidth * 5);
-	    case(PEN):
-		    if (isInTheRect(x, y, 20, wh - ww / 10, ww - 0, 0)) {
-			    glBegin(GL_LINES);
-			    glVertex2i(x, wh - y);
-			    glVertex2i(xp[0], wh - yp[0]);
-			    glEnd();
-			    xp[0] = x;
-			    yp[0] = y;
-		    }
-		    glFlush();
-		    break;
+
+		glColor4f(0.8, 0.8, 0.8, a);
+		glLineWidth(lineWidth * 5);
 	}
+
+	case(PEN):
+	{
+
+		if (isInTheRect(x, y, 20, wh - 0, ww - 0, 0)) {
+			glBegin(GL_LINES);
+			glVertex2i(x, wh - y);
+			glVertex2i(xp[0], wh - yp[0]);
+			glEnd();
+			xp[0] = x;
+			yp[0] = y;
+		}
+		glFlush();
+		break;
+	}
+
+	}
+<<<<<<< HEAD
+=======
+    glFlush();
+	pick(x, y);
+>>>>>>> Minseo
 }
 
 bool isInTheRect(int x, int y, int left, int top, int right, int bottom) {
