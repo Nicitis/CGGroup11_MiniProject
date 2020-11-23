@@ -227,6 +227,8 @@ void mouse(int btn, int state, int x, int y)
                         yp[1] = y;
                         break;
                     case(2):
+                        glLineWidth(lineWidth);
+
                         if (fill) glBegin(GL_POLYGON);
                         else glBegin(GL_LINE_LOOP);
                         glVertex2i(xp[0], wh - yp[0]);
