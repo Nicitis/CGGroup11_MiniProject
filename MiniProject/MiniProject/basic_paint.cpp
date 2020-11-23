@@ -55,7 +55,7 @@ GLsizei wh = 500, ww = 500; /* initial window size */
 GLfloat size = 3.0;   /* half side length of square */
 
 //Adding New 20203044
-GLfloat lineWidth = 1.0; // Line Size
+GLfloat lineWidth = 2.0; // Line Size
 int rubberband = 0;
 int xp[2], yp[2];
 
@@ -165,6 +165,8 @@ void mouse(int btn, int state, int x, int y)
         }
         else switch (draw_mode)
         {
+            glLineWidth(lineWidth);
+
             case(DRAW_LINE):
                 if (count == 0)
                 {
@@ -310,6 +312,7 @@ void mouse(int btn, int state, int x, int y)
     if (btn == GLUT_LEFT_BUTTON && state == GLUT_UP)
     {
         where = pick(x, y);
+        glLineWidth(lineWidth);
 
         switch (draw_mode)
         {
@@ -488,6 +491,8 @@ void pixel_menu(int id)
 {
     if (id == 1) size = 2 * size;
     else if (size > 1) size = size/2;
+    else if (id == 3) glLineWidth(lineWidth = 2 * lineWidth);
+    else if (id == 4) glLineWidth(lineWidth = lineWidth / 2);
 }
 
 void fill_menu(int id)
@@ -1072,6 +1077,8 @@ int main(int argc, char** argv)
     p_menu = glutCreateMenu(pixel_menu);
     glutAddMenuEntry("increase pixel size", 1);
     glutAddMenuEntry("decrease pixel size", 2);
+    glutAddMenuEntry("increase line width", 3);
+    glutAddMenuEntry("decrease line width", 4);
 
     f_menu = glutCreateMenu(fill_menu);
     glutAddMenuEntry("fill on", 1);
