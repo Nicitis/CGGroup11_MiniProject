@@ -1,11 +1,5 @@
 #include "BitmapText.h"
 
-// #include <windows.h>                      // Header File For Windows
-// #include <stdio.h>                        // Header File For Standard Input/Output
-// #include <stdarg.h>                       // Header File For Variable Argument Routines
-// #include <gl\gl.h>                        // Header File For The OpenGL32 Library
-// #include <gl\glu.h>                       // Header File For The GLu32 Library
-
 HDC hDC;                     // Private GDI Device Context
 HGLRC hRC;                   // Permanent Rendering Context
 HWND hWnd;                   // Holds Our Window Handle
@@ -40,9 +34,9 @@ GLvoid BuildFontWithEnum(FONT fontEnum, int fontSize)
     }
 }
 
-/** »õ·Î¿î ÆùÆ®¸¦ »ı¼ºÇÏ´Â ÇÔ¼öÀÔ´Ï´Ù.
- *  char* fontName: ÆùÆ® ÀÌ¸§
- *  int fontSize: ÆùÆ® Å©±â
+/** ìƒˆë¡œìš´ í°íŠ¸ë¥¼ ìƒì„±í•˜ëŠ” í•¨ìˆ˜ì…ë‹ˆë‹¤.
+ *  char* fontName: í°íŠ¸ ì´ë¦„
+ *  int fontSize: í°íŠ¸ í¬ê¸°
  */
 GLvoid BuildFont(const char* fontName, int fontSize)
 {
@@ -58,7 +52,7 @@ GLvoid BuildFont(const char* fontName, int fontSize)
         FW_BOLD,        // Font Weight
         FALSE,          // Italic
         FALSE,          // Underline
-        FALSE,          // Strikeout (Ãë¼Ò¼±)
+        FALSE,          // Strikeout (ì·¨ì†Œì„ )
         ANSI_CHARSET, // Character Set Identifier
         OUT_TT_PRECIS,  // Output Precision
         CLIP_DEFAULT_PRECIS,        // Clipping Precision
@@ -99,13 +93,8 @@ GLvoid glPrint(const char* fmt, ...)                // Custom GL "Print" Routine
 int InitFont(GLvoid)                      // All Setup For OpenGL Goes Here
 {
     glShadeModel(GL_SMOOTH);                // Enable Smooth Shading
-    // glClearColor(0.0f, 0.0f, 0.0f, 0.5f);           // Black Background
-    // glClearDepth(1.0f);                 // Depth Buffer Setup
-    // glEnable(GL_DEPTH_TEST);                // Enables Depth Testing
-    // glDepthFunc(GL_LEQUAL);                 // The Type Of Depth Testing To Do
-    // glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Really Nice Perspective Calculations
 
-    hDC = wglGetCurrentDC();            // ÇöÀç openGL À©µµ¿ìÀÇ hDC¸¦ °¡Á®¿Â´Ù.
+    hDC = wglGetCurrentDC();            // í˜„ì¬ openGL ìœˆë„ìš°ì˜ hDCë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 
     BuildFontWithEnum(ARIAL, DEFAULTFONTSIZE);       // Build The Font
 
