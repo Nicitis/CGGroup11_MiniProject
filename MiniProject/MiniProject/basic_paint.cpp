@@ -103,8 +103,8 @@ void myReshape(GLsizei w, GLsizei h)
     glOrtho(0.0, (GLdouble)w, 0.0, (GLdouble)h, -1.0, 1.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity(); 
-    glEnable(GL_LINE_SMOOTH); // 안티앨리어싱 가능하게 처리
-    glEnable(GL_POLYGON_SMOOTH);
+    glEnable(GL_LINE_SMOOTH); // 선에 안티앨리어싱 적용
+    glEnable(GL_POLYGON_SMOOTH); // 다각형에 안티앨리어싱 적용
 
     /* adjust viewport and  clear */
     glViewport(0,0,w,h);
