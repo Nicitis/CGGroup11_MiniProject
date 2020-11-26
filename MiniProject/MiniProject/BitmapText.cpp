@@ -9,6 +9,13 @@ GLuint  base;                           // Base Display List For The Font Set
 GLfloat cnt1;                           // 1st Counter Used To Move Text & For Coloring
 GLfloat cnt2;                           // 2nd Counter Used To Move Text & For Coloring
 
+/*-------------------------------------------------*
+ * BuildFontWithEnum()                             *
+ *      조건에 맞는 폰트를 생성한다.               *
+ *      fontEnum, fontSize: 새로 생성할 폰트 정보  *
+ *        fontEnum은 폰트 종류, fontSize는 폰트    *
+ *        크기를 의미한다.                         *
+ *-------------------------------------------------*/
 GLvoid BuildFontWithEnum(FONT fontEnum, int fontSize)
 {
     switch (fontEnum)
@@ -34,10 +41,13 @@ GLvoid BuildFontWithEnum(FONT fontEnum, int fontSize)
     }
 }
 
-/** 새로운 폰트를 생성하는 함수입니다.
- *  char* fontName: 폰트 이름
- *  int fontSize: 폰트 크기
- */
+/*-------------------------------------------------*
+ * BuildFont()                                     *
+ *      조건에 맞게 새로운 폰트를 생성한다.        *
+ *      fontName, fontSize: 새로 빌드할 폰트 정보  *
+ *        fontName은 폰트의 이름, fontSize는 폰트  *
+ *        크기를 의미한다.                         *
+ *-------------------------------------------------*/
 GLvoid BuildFont(const char* fontName, int fontSize)
 {
     HFONT   font;                       // Windows Font ID
@@ -66,11 +76,20 @@ GLvoid BuildFont(const char* fontName, int fontSize)
     DeleteObject(font);                 // Delete The Font
 }
 
+/*-------------------------------------------------*
+ * KillFont()                                      *
+ *      폰트를 위한 디스플레이 리스트를 삭제한다.  *
+ *-------------------------------------------------*/
 GLvoid KillFont(GLvoid)                     // Delete The Font List
 {
     glDeleteLists(base, 96);                // Delete All 96 Characters
 }
 
+/*-------------------------------------------------*
+ * glPrint()                                       *
+ *      문자열을 비트맵 그래픽으로 출력한다.       *
+ *      fmt: 가변길이 문자열, 출력할 문자열이다.   *
+ *-------------------------------------------------*/
 GLvoid glPrint(const char* fmt, ...)                // Custom GL "Print" Routine
 {
     char        text[256];              // Holds Our String
@@ -90,6 +109,11 @@ GLvoid glPrint(const char* fmt, ...)                // Custom GL "Print" Routine
     glPopAttrib();                      // Pops The Display List Bits
 }
 
+/*-------------------------------------------------*
+ * InitFont()                                      *
+ *      폰트 생성에 필요한 정보를 초기화하고       *
+ *      기본 폰트인 ARIAL을 생성한다.              *
+ *-------------------------------------------------*/
 int InitFont(GLvoid)                      // All Setup For OpenGL Goes Here
 {
     glShadeModel(GL_SMOOTH);                // Enable Smooth Shading
