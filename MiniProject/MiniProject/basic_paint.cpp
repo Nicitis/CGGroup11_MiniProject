@@ -1,4 +1,4 @@
-/* This program illustrates the use of the glut library for
+ï»¿/* This program illustrates the use of the glut library for
 interfacing with a window system */
 
 #include <glut.h>
@@ -84,6 +84,7 @@ void drawSquare(int x, int y)
 {
     y=wh-y;
     glColor3ub( (char) rand()%256, (char) rand()%256, (char) rand()%256); 
+    glLineWidth(1.0);
     glBegin(GL_POLYGON);
     {
         glVertex2f(x + size, y + size);
@@ -105,7 +106,7 @@ void myReshape(GLsizei w, GLsizei h)
     glOrtho(0.0, (GLdouble)w, 0.0, (GLdouble)h, -1.0, 1.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity(); 
-    glEnable(GL_LINE_SMOOTH); // ¾ÈÆ¼¾Ù¸®¾î½Ì °¡´ÉÇÏ°Ô Ã³¸®
+    glEnable(GL_LINE_SMOOTH); // ì•ˆí‹°ì•¨ë¦¬ì–´ì‹± ê°€ëŠ¥í•˜ê²Œ ì²˜ë¦¬
     glEnable(GL_POLYGON_SMOOTH);
 
     /* adjust viewport and  clear */
@@ -202,7 +203,7 @@ void mouse(int btn, int state, int x, int y)
                     glEnable(GL_COLOR_LOGIC_OP);
                     glLogicOp(GL_XOR);
 
-                    glBegin(GL_LINE_LOOP); // ÀÌÀüÀÇ RubberBand_rect Áö¿ì±â
+                    glBegin(GL_LINE_LOOP); // ì´ì „ì˜ RubberBand_rect ì§€ìš°ê¸°
                     glVertex2i(xp[1], yp[1]);
                     glVertex2i(xp[1], yp[0]);
                     glVertex2i(xp[0], yp[0]);
@@ -704,7 +705,6 @@ void paste(int x, int y)
     int gl_y = wh - y - copy_height;
 
     // constrict the range of y 
-    //if (gl_y < 0) gl_y = 0; // copy ¿µ¿ªµµ fixµÇ°Ô ÇÏÀÚ.
     if (gl_y > wh - copy_height - ww / 10) gl_y = wh - copy_height - ww / 10;
 
     glRasterPos2i(gl_x, gl_y);
@@ -774,7 +774,7 @@ void draw_select_box(int x, int y, int width, int height)
     glLineWidth(1.0);
 }
 
-// ºê·¹½º³Ñ ¾Ë°í¸®ÁòÀ» ÅëÇÑ ¿ø ±×¸®±â ÇÔ¼ö
+// ë¸Œë ˆìŠ¤ë„˜ ì•Œê³ ë¦¬ì¦˜ì„ í†µí•œ ì› ê·¸ë¦¬ê¸° í•¨ìˆ˜
 void draw_circle(int cx, int cy, int r, int fill)
 {
     int x, y, p;
@@ -821,6 +821,8 @@ void display(void)
     glClear(GL_COLOR_BUFFER_BIT);
 	menuHighlight();
 	glPopAttrib();
+
+    is_selected = FALSE; // í™”ë©´ì„ ì§€ìš°ê³  ìƒˆë¡œ ê·¸ë¦´ ë•Œ ì„ íƒì„ í•´ì œí•©ë‹ˆë‹¤.
 }
 
 void draw_menu(int target_menu, int x, int y, int len)
@@ -837,6 +839,7 @@ void menuHighlight(void)
 {
     glLineWidth(1);
 
+    // ë©”ë‰´ë¥¼ ê·¸ë¦½ë‹ˆë‹¤.
     // Line Menu
     draw_menu(DRAW_LINE, 0, wh - ww / 10, ww / 10);
 
@@ -949,20 +952,20 @@ void motionFunc(int x, int y)
             {
                 y = wh - y;
                 glEnable(GL_COLOR_LOGIC_OP);
-                glLogicOp(GL_XOR); // XOR ¿¬»ê
+                glLogicOp(GL_XOR); // XOR ì—°ì‚°
                 glBegin(GL_LINES);
 
                 if (!(r == 1.0 && g == 1.0 && b == 1.0))
                     glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
 
-                glVertex2i(xp[0], yp[0]); // ±âÁ¸ ¼±ºĞ Áö¿ì±â
+                glVertex2i(xp[0], yp[0]); // ê¸°ì¡´ ì„ ë¶„ ì§€ìš°ê¸°
                 glVertex2i(xp[1], yp[1]);
 
-                glVertex2i(xp[0], yp[0]); // »õ·Î¿î RubberBand_line ±×¸®±â
+                glVertex2i(xp[0], yp[0]); // ìƒˆë¡œìš´ RubberBand_line ê·¸ë¦¬ê¸°
                 glVertex2i(x, y);
                 glEnd();
 
-                xp[1] = x; // RubberBand_lineÀÇ ³¡ Á¡ À¯ÁöÇÏ±â
+                xp[1] = x; // RubberBand_lineì˜ ë ì  ìœ ì§€í•˜ê¸°
                 yp[1] = y;
 
                 glFlush();
@@ -974,12 +977,12 @@ void motionFunc(int x, int y)
             {
                 y = wh - y;
                 glEnable(GL_COLOR_LOGIC_OP);
-                glLogicOp(GL_XOR); // XOR¿¬»ê
+                glLogicOp(GL_XOR); // XORì—°ì‚°
 
                 if (!(r == 1.0 && g == 1.0 && b == 1.0))
                     glColor4f(1.0 - r, 1.0 - g, 1.0 - b, a);
 
-                glBegin(GL_LINE_LOOP); // ÀÌÀüÀÇ RubberBand_rect Áö¿ì±â
+                glBegin(GL_LINE_LOOP); // ì´ì „ì˜ RubberBand_rect ì§€ìš°ê¸°
                 glVertex2i(xp[1], yp[1]);
                 glVertex2i(xp[1], yp[0]);
                 glVertex2i(xp[0], yp[0]);
@@ -987,7 +990,7 @@ void motionFunc(int x, int y)
                 glEnd();
             
 
-                glBegin(GL_LINE_LOOP); // »õ·Î¿î RubberBand_rect ±×¸®±â
+                glBegin(GL_LINE_LOOP); // ìƒˆë¡œìš´ RubberBand_rect ê·¸ë¦¬ê¸°
                 glVertex2i(x, y);
                 glVertex2i(x, yp[0]);
                 glVertex2i(xp[0], yp[0]);
@@ -995,10 +998,10 @@ void motionFunc(int x, int y)
                 glEnd();
                 glFlush();
 
-                xp[1] = x; // RubberBand_rectÀÇ ³¡ Á¡ À¯Áö
+                xp[1] = x; // RubberBand_rectì˜ ë ì  ìœ ì§€
                 yp[1] = y;
 
-                rubberband = 1; // »õ·Î¿î vertex°¡ ÂïÇûÀ»¶§ ±âÁ¸ÀÇ RubberBand_rect ²÷±â
+                rubberband = 1; // ìƒˆë¡œìš´ vertexê°€ ì°í˜”ì„ë•Œ ê¸°ì¡´ì˜ RubberBand_rect ëŠê¸°
                 glDisable(GL_COLOR_LOGIC_OP);
             }
             break;
